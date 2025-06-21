@@ -176,6 +176,30 @@ export const useSystemData = () => {
     setServicos(prev => [...prev, newServico]);
   };
 
+  const updateServico = (id: string, servico: Partial<Servico>) => {
+    setServicos(prev => prev.map(s => s.id === id ? { ...s, ...servico } : s));
+  };
+
+  const deleteServico = (id: string) => {
+    setServicos(prev => prev.filter(s => s.id !== id));
+  };
+
+  const addContrato = (contrato: Omit<Contrato, 'id'>) => {
+    const newContrato: Contrato = {
+      ...contrato,
+      id: Date.now().toString()
+    };
+    setContratos(prev => [...prev, newContrato]);
+  };
+
+  const updateContrato = (id: string, contrato: Partial<Contrato>) => {
+    setContratos(prev => prev.map(c => c.id === id ? { ...c, ...contrato } : c));
+  };
+
+  const deleteContrato = (id: string) => {
+    setContratos(prev => prev.filter(c => c.id !== id));
+  };
+
   const updateMensalidadePagamento = (id: string, pagamento: {
     statusPagamento: 'Pago';
     dataPagamento: Date;
@@ -196,6 +220,11 @@ export const useSystemData = () => {
     updateCliente,
     deleteCliente,
     addServico,
+    updateServico,
+    deleteServico,
+    addContrato,
+    updateContrato,
+    deleteContrato,
     updateMensalidadePagamento
   };
 };

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Edit, Trash2, User } from "lucide-react";
 import { Cliente } from "@/types";
 
-export function Clientes() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+interface ClientesProps {
+  clientes: Cliente[];
+  onAddCliente: (cliente: Omit<Cliente, 'id' | 'dataCadastro'>) => void;
+  onUpdateCliente: (id: string, cliente: Partial<Cliente>) => void;
+  onDeleteCliente: (id: string) => void;
+}
+
+export function Clientes({ clientes, onAddCliente, onUpdateCliente, onDeleteCliente }: ClientesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -17,7 +24,7 @@ export function Clientes() {
     email: '',
     telefone: '',
     cpfCnpj: '',
-    status: 'Ativo' as const,
+    status: 'Ativo' as 'Ativo' | 'Inativo',
     observacoes: ''
   });
 
@@ -25,19 +32,10 @@ export function Clientes() {
     e.preventDefault();
     
     if (editingCliente) {
-      setClientes(clientes.map(cliente => 
-        cliente.id === editingCliente.id 
-          ? { ...editingCliente, ...formData }
-          : cliente
-      ));
+      onUpdateCliente(editingCliente.id, formData);
       setEditingCliente(null);
     } else {
-      const novoCliente: Cliente = {
-        id: Date.now().toString(),
-        ...formData,
-        dataCadastro: new Date()
-      };
-      setClientes([...clientes, novoCliente]);
+      onAddCliente(formData);
     }
     
     setFormData({
@@ -65,7 +63,7 @@ export function Clientes() {
   };
 
   const handleDelete = (id: string) => {
-    setClientes(clientes.filter(cliente => cliente.id !== id));
+    onDeleteCliente(id);
   };
 
   const filteredClientes = clientes.filter(cliente =>

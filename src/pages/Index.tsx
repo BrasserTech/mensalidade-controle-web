@@ -4,10 +4,13 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { Clientes } from "@/components/Clientes";
+import { Servicos } from "@/components/Servicos";
+import { Contratos } from "@/components/Contratos";
 import { Mensalidades } from "@/components/Mensalidades";
+import { Relatorios } from "@/components/Relatorios";
+import { Configuracoes } from "@/components/Configuracoes";
 import { useSystemData } from "@/hooks/useSystemData";
-import { Card, CardContent } from "@/components/ui/card";
-import { Settings, FileText, Calendar } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -21,6 +24,11 @@ const Index = () => {
     updateCliente,
     deleteCliente,
     addServico,
+    updateServico,
+    deleteServico,
+    addContrato,
+    updateContrato,
+    deleteContrato,
     updateMensalidadePagamento
   } = useSystemData();
 
@@ -37,6 +45,26 @@ const Index = () => {
             onDeleteCliente={deleteCliente}
           />
         );
+      case 'servicos':
+        return (
+          <Servicos
+            servicos={servicos}
+            onAddServico={addServico}
+            onUpdateServico={updateServico}
+            onDeleteServico={deleteServico}
+          />
+        );
+      case 'contratos':
+        return (
+          <Contratos
+            contratos={contratos}
+            clientes={clientes}
+            servicos={servicos}
+            onAddContrato={addContrato}
+            onUpdateContrato={updateContrato}
+            onDeleteContrato={deleteContrato}
+          />
+        );
       case 'mensalidades':
         return (
           <Mensalidades
@@ -47,70 +75,17 @@ const Index = () => {
             onUpdatePagamento={updateMensalidadePagamento}
           />
         );
-      case 'servicos':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Serviços</h1>
-              <p className="text-gray-600">Gerencie os serviços oferecidos pela empresa</p>
-            </div>
-            <Card>
-              <CardContent className="text-center py-12">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Gestão de Serviços</h3>
-                <p className="text-gray-500">Esta seção será implementada em breve.</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
-      case 'contratos':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Contratos</h1>
-              <p className="text-gray-600">Gerencie contratos de clientes e serviços</p>
-            </div>
-            <Card>
-              <CardContent className="text-center py-12">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Gestão de Contratos</h3>
-                <p className="text-gray-500">Esta seção será implementada em breve.</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
       case 'relatórios':
         return (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Relatórios</h1>
-              <p className="text-gray-600">Relatórios financeiros e exportação de dados</p>
-            </div>
-            <Card>
-              <CardContent className="text-center py-12">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Relatórios e Exportação</h3>
-                <p className="text-gray-500">Funcionalidade de relatórios será implementada em breve.</p>
-              </CardContent>
-            </Card>
-          </div>
+          <Relatorios
+            clientes={clientes}
+            contratos={contratos}
+            mensalidades={mensalidades}
+            servicos={servicos}
+          />
         );
       case 'configurações':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Configurações</h1>
-              <p className="text-gray-600">Configurações do sistema e usuários</p>
-            </div>
-            <Card>
-              <CardContent className="text-center py-12">
-                <Settings className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Configurações do Sistema</h3>
-                <p className="text-gray-500">Painel de configurações será implementado em breve.</p>
-              </CardContent>
-            </Card>
-          </div>
-        );
+        return <Configuracoes />;
       default:
         return <Dashboard stats={getDashboardStats()} />;
     }
@@ -129,6 +104,7 @@ const Index = () => {
           </div>
         </main>
       </div>
+      <Toaster />
     </SidebarProvider>
   );
 };
