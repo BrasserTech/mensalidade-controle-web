@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -25,12 +26,44 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					DEFAULT: 'hsl(217, 91%, 60%)',
+					foreground: 'hsl(0, 0%, 98%)',
+					50: 'hsl(217, 91%, 95%)',
+					100: 'hsl(217, 91%, 90%)',
+					200: 'hsl(217, 91%, 80%)',
+					300: 'hsl(217, 91%, 70%)',
+					400: 'hsl(217, 91%, 60%)',
+					500: 'hsl(217, 91%, 50%)',
+					600: 'hsl(217, 91%, 40%)',
+					700: 'hsl(217, 91%, 30%)',
+					800: 'hsl(217, 91%, 20%)',
+					900: 'hsl(217, 91%, 10%)',
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
+				},
+				success: {
+					DEFAULT: 'hsl(142, 76%, 36%)',
+					foreground: 'hsl(0, 0%, 98%)',
+					50: 'hsl(142, 76%, 95%)',
+					100: 'hsl(142, 76%, 90%)',
+					200: 'hsl(142, 76%, 80%)',
+					300: 'hsl(142, 76%, 70%)',
+					400: 'hsl(142, 76%, 60%)',
+					500: 'hsl(142, 76%, 50%)',
+					600: 'hsl(142, 76%, 40%)',
+					700: 'hsl(142, 76%, 30%)',
+					800: 'hsl(142, 76%, 20%)',
+					900: 'hsl(142, 76%, 10%)',
+				},
+				warning: {
+					DEFAULT: 'hsl(38, 92%, 50%)',
+					foreground: 'hsl(0, 0%, 98%)',
+				},
+				danger: {
+					DEFAULT: 'hsl(0, 84%, 60%)',
+					foreground: 'hsl(0, 0%, 98%)',
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
@@ -84,11 +117,22 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out'
 			}
 		}
 	},
