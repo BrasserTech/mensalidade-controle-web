@@ -38,6 +38,8 @@ const Index = () => {
     updateContrato,
     deleteContrato,
     updateMensalidadePagamento,
+    updateMensalidade,
+    deleteMensalidade,
     addMensalidade
   } = useSystemData();
 
@@ -102,6 +104,8 @@ const Index = () => {
             contratos={contratos}
             servicos={servicos}
             onUpdatePagamento={updateMensalidadePagamento}
+            onUpdateMensalidade={updateMensalidade}
+            onDeleteMensalidade={deleteMensalidade}
             onAddMensalidade={() => setShowAdicionarMensalidade(true)}
           />
         );

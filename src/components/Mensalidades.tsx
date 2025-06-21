@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Check, Clock, AlertTriangle, User, Calendar } from "lucide-react";
+import { Search, Plus, Check, Clock, AlertTriangle, User, Calendar, Edit, Trash2 } from "lucide-react";
 import { Mensalidade, Cliente, Contrato, Servico } from "@/types";
 import { toast } from "sonner";
 
@@ -17,13 +18,29 @@ interface MensalidadesProps {
     formaPagamento: 'Pix' | 'Boleto' | 'Cartão';
   }) => void;
   onAddMensalidade: () => void;
+  onUpdateMensalidade: (id: string, mensalidade: Partial<Mensalidade>) => void;
+  onDeleteMensalidade: (id: string) => void;
 }
 
-export function Mensalidades({ mensalidades, clientes, contratos, servicos, onUpdatePagamento, onAddMensalidade }: MensalidadesProps) {
+export function Mensalidades({ 
+  mensalidades, 
+  clientes, 
+  contratos, 
+  servicos, 
+  onUpdatePagamento, 
+  onAddMensalidade,
+  onUpdateMensalidade,
+  onDeleteMensalidade 
+}: MensalidadesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [showPagamentoForm, setShowPagamentoForm] = useState<string | null>(null);
+  const [showEditForm, setShowEditForm] = useState<string | null>(null);
   const [formaPagamento, setFormaPagamento] = useState<'Pix' | 'Boleto' | 'Cartão'>('Pix');
+  const [editFormData, setEditFormData] = useState({
+    valor: '',
+    dataVencimento: ''
+  });
 
   const getClienteNome = (contratoId: string) => {
     const contrato = contratos.find(c => c.id === contratoId);
@@ -47,6 +64,30 @@ export function Mensalidades({ mensalidades, clientes, contratos, servicos, onUp
     });
     setShowPagamentoForm(null);
     toast.success('Pagamento registrado com sucesso!');
+  };
+
+  const handleEditMensalidade = (mensalidade: Mensalidade) => {
+    setEditFormData({
+      valor: mensalidade.valor.toString(),
+      dataVencimento: mensalidade.dataVencimento.toISOString().split('T')[0]
+    });
+    setShowEditForm(mensalidade.id);
+  };
+
+  const handleUpdateMensalidade = (mensalidadeId: string) => {
+    onUpdateMensalidade(mensalidadeId, {
+      valor: parseFloat(editFormData.valor),
+      dataVencimento: new Date(editFormData.dataVencimento)
+    });
+    setShowEditForm(null);
+    toast.success('Mensalidade atualizada com sucesso!');
+  };
+
+  const handleDeleteMensalidade = (mensalidadeId: string) => {
+    if (confirm('Tem certeza que deseja excluir esta mensalidade?')) {
+      onDeleteMensalidade(mensalidadeId);
+      toast.success('Mensalidade excluída com sucesso!');
+    }
   };
 
   const filteredMensalidades = mensalidades.filter(mensalidade => {
@@ -166,50 +207,110 @@ export function Mensalidades({ mensalidades, clientes, contratos, servicos, onUp
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    {mensalidade.statusPagamento !== 'Pago' && (
-                      <>
-                        {showPagamentoForm === mensalidade.id ? (
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <div className="space-y-2">
-                              <select
-                                value={formaPagamento}
-                                onChange={(e) => setFormaPagamento(e.target.value as 'Pix' | 'Boleto' | 'Cartão')}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                              >
-                                <option value="Pix">Pix</option>
-                                <option value="Boleto">Boleto</option>
-                                <option value="Cartão">Cartão</option>
-                              </select>
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleMarcarPago(mensalidade.id)}
-                                  className="flex-1 text-xs"
-                                >
-                                  Confirmar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setShowPagamentoForm(null)}
-                                  className="flex-1 text-xs"
-                                >
-                                  Cancelar
-                                </Button>
-                              </div>
-                            </div>
+                    {/* Formulário de edição */}
+                    {showEditForm === mensalidade.id && (
+                      <div className="bg-gray-50 p-3 rounded-lg mb-2">
+                        <div className="space-y-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Valor"
+                            value={editFormData.valor}
+                            onChange={(e) => setEditFormData({...editFormData, valor: e.target.value})}
+                            className="text-sm"
+                          />
+                          <Input
+                            type="date"
+                            value={editFormData.dataVencimento}
+                            onChange={(e) => setEditFormData({...editFormData, dataVencimento: e.target.value})}
+                            className="text-sm"
+                          />
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateMensalidade(mensalidade.id)}
+                              className="flex-1 text-xs"
+                            >
+                              Salvar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setShowEditForm(null)}
+                              className="flex-1 text-xs"
+                            >
+                              Cancelar
+                            </Button>
                           </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => setShowPagamentoForm(mensalidade.id)}
-                            className="flex items-center gap-1"
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Formulário de pagamento */}
+                    {showPagamentoForm === mensalidade.id && mensalidade.statusPagamento !== 'Pago' && (
+                      <div className="bg-gray-50 p-3 rounded-lg mb-2">
+                        <div className="space-y-2">
+                          <select
+                            value={formaPagamento}
+                            onChange={(e) => setFormaPagamento(e.target.value as 'Pix' | 'Boleto' | 'Cartão')}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                           >
-                            <Check className="w-3 h-3" />
-                            Marcar como Pago
-                          </Button>
-                        )}
-                      </>
+                            <option value="Pix">Pix</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Cartão">Cartão</option>
+                          </select>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              onClick={() => handleMarcarPago(mensalidade.id)}
+                              className="flex-1 text-xs"
+                            >
+                              Confirmar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setShowPagamentoForm(null)}
+                              className="flex-1 text-xs"
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Botões de ação */}
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditMensalidade(mensalidade)}
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        <Edit className="w-3 h-3" />
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteMensalidade(mensalidade.id)}
+                        className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Excluir
+                      </Button>
+                    </div>
+
+                    {mensalidade.statusPagamento !== 'Pago' && showPagamentoForm !== mensalidade.id && (
+                      <Button
+                        size="sm"
+                        onClick={() => setShowPagamentoForm(mensalidade.id)}
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        <Check className="w-3 h-3" />
+                        Marcar como Pago
+                      </Button>
                     )}
                   </div>
                 </div>

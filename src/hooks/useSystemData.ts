@@ -209,6 +209,16 @@ export const useSystemData = () => {
     );
   };
 
+  const updateMensalidade = (id: string, mensalidade: Partial<Mensalidade>) => {
+    setMensalidades(prev => 
+      prev.map(m => m.id === id ? { ...m, ...mensalidade } : m)
+    );
+  };
+
+  const deleteMensalidade = (id: string) => {
+    setMensalidades(prev => prev.filter(m => m.id !== id));
+  };
+
   const addMensalidade = (mensalidade: {
     contratoId: string;
     mesReferencia: string;
@@ -241,6 +251,8 @@ export const useSystemData = () => {
     updateContrato,
     deleteContrato,
     updateMensalidadePagamento,
+    updateMensalidade,
+    deleteMensalidade,
     addMensalidade
   };
 };
