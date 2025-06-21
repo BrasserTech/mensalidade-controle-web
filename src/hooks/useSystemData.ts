@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Cliente, Servico, Contrato, Mensalidade, DashboardStats } from '@/types';
 
@@ -210,6 +209,22 @@ export const useSystemData = () => {
     );
   };
 
+  const addMensalidade = (mensalidade: {
+    contratoId: string;
+    mesReferencia: string;
+    valor: number;
+    statusPagamento: 'Em aberto' | 'Pago' | 'Vencido';
+    dataVencimento: Date;
+    dataPagamento?: Date;
+    formaPagamento?: 'Pix' | 'Boleto' | 'Cartão';
+  }) => {
+    const newMensalidade: Mensalidade = {
+      ...mensalidade,
+      id: Date.now().toString()
+    };
+    setMensalidades(prev => [...prev, newMensalidade]);
+  };
+
   return {
     clientes,
     servicos,
@@ -225,6 +240,7 @@ export const useSystemData = () => {
     addContrato,
     updateContrato,
     deleteContrato,
-    updateMensalidadePagamento
+    updateMensalidadePagamento,
+    addMensalidade
   };
 };

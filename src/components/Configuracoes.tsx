@@ -1,12 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Palette, Save } from "lucide-react";
+import { Settings, Palette, Save, LogOut, Info, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
-export function Configuracoes() {
+interface ConfiguracoesProps {
+  currentUser: { nome: string; email: string; tipo: 'Administrador' | 'Operador' } | null;
+  onLogout: () => void;
+}
+
+export function Configuracoes({ currentUser, onLogout }: ConfiguracoesProps) {
   const [cores, setCores] = useState({
     primary: '#3b82f6',
     secondary: '#64748b',
@@ -16,11 +21,26 @@ export function Configuracoes() {
   });
 
   const [configuracoes, setConfiguracoes] = useState({
-    nomeEmpresa: 'Minha Empresa',
-    emailContato: 'contato@minhaempresa.com',
+    nomeEmpresa: 'SisGest - Sistema de Gestão',
+    emailContato: 'contato@sisgest.com',
     telefone: '(11) 99999-9999',
-    endereco: 'Rua das Empresas, 123'
+    endereco: 'Rua das Empresas, 123 - São Paulo/SP',
+    versaoSistema: '1.0.0',
+    dataUltimaAtualizacao: new Date().toLocaleDateString('pt-BR')
   });
+
+  useEffect(() => {
+    // Carregar configurações salvas
+    const configSalvas = localStorage.getItem('configuracoes');
+    const coresSalvas = localStorage.getItem('cores');
+    
+    if (configSalvas) {
+      setConfiguracoes(JSON.parse(configSalvas));
+    }
+    if (coresSalvas) {
+      setCores(JSON.parse(coresSalvas));
+    }
+  }, []);
 
   const handleCorChange = (corNome: string, valor: string) => {
     setCores(prev => ({
@@ -56,10 +76,31 @@ export function Configuracoes() {
       return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
     };
 
-    root.style.setProperty('--primary', hexToHsl(cores.primary));
-    root.style.setProperty('--success', hexToHsl(cores.success));
-    root.style.setProperty('--warning', hexToHsl(cores.warning));
-    root.style.setProperty('--destructive', hexToHsl(cores.danger));
+    // Aplicar cores CSS personalizadas
+    const primaryHsl = hexToHsl(cores.primary);
+    const successHsl = hexToHsl(cores.success);
+    const warningHsl = hexToHsl(cores.warning);
+    const dangerHsl = hexToHsl(cores.danger);
+
+    root.style.setProperty('--primary', primaryHsl);
+    root.style.setProperty('--primary-foreground', '0 0% 98%');
+    
+    // Aplicar também nas classes do Tailwind
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .bg-primary { background-color: ${cores.primary} !important; }
+      .text-primary { color: ${cores.primary} !important; }
+      .border-primary { border-color: ${cores.primary} !important; }
+      .bg-success { background-color: ${cores.success} !important; }
+      .text-success { color: ${cores.success} !important; }
+      .bg-danger { background-color: ${cores.danger} !important; }
+      .text-danger { color: ${cores.danger} !important; }
+      .bg-warning { background-color: ${cores.warning} !important; }
+      .text-warning { color: ${cores.warning} !important; }
+      .bg-primary-50 { background-color: ${cores.primary}20 !important; }
+      .bg-success-50 { background-color: ${cores.success}20 !important; }
+    `;
+    document.head.appendChild(style);
 
     toast.success('Cores aplicadas com sucesso!');
   };
@@ -80,14 +121,26 @@ export function Configuracoes() {
     };
     setCores(coresOriginais);
     
-    // Aplicar cores originais
+    // Remover estilos personalizados
+    const styles = document.querySelectorAll('style');
+    styles.forEach(style => {
+      if (style.innerHTML.includes('.bg-primary')) {
+        style.remove();
+      }
+    });
+    
+    // Restaurar CSS original
     const root = document.documentElement;
     root.style.setProperty('--primary', '217 91% 60%');
-    root.style.setProperty('--success', '142 76% 36%');
-    root.style.setProperty('--warning', '38 92% 50%');
-    root.style.setProperty('--destructive', '0 84% 60%');
     
     toast.success('Cores resetadas para o padrão!');
+  };
+
+  const handleLogout = () => {
+    if (confirm('Tem certeza que deseja sair do sistema?')) {
+      onLogout();
+      toast.success('Logout realizado com sucesso!');
+    }
   };
 
   return (
@@ -97,18 +150,74 @@ export function Configuracoes() {
           <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
           <p className="text-gray-600">Configurações do sistema e personalização</p>
         </div>
-        <Button onClick={salvarConfiguracoes} className="flex items-center gap-2">
-          <Save className="w-4 h-4" />
-          Salvar Configurações
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={salvarConfiguracoes} className="flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            Salvar Configurações
+          </Button>
+          <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2 text-red-600 border-red-600 hover:bg-red-50">
+            <LogOut className="w-4 h-4" />
+            Sair do Sistema
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Informações do Sistema */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5" />
+              Informações do Sistema
+            </CardTitle>
+            <CardDescription>
+              Dados sobre o sistema e usuário atual
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Usuário Atual
+                </label>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                  {currentUser?.nome || 'Não identificado'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Tipo de Acesso
+                </label>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                  {currentUser?.tipo || 'Não definido'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Versão do Sistema
+                </label>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                  {configuracoes.versaoSistema}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Última Atualização
+                </label>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                  {configuracoes.dataUltimaAtualizacao}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Configurações da Empresa */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5" />
-              Informações da Empresa
+              Configurações da Empresa
             </CardTitle>
             <CardDescription>
               Configure as informações básicas da sua empresa
@@ -171,7 +280,8 @@ export function Configuracoes() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Personalização de Cores */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="w-5 h-5" />
@@ -182,7 +292,7 @@ export function Configuracoes() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Cor Primária
@@ -197,7 +307,7 @@ export function Configuracoes() {
                   <Input
                     value={cores.primary}
                     onChange={(e) => handleCorChange('primary', e.target.value)}
-                    className="flex-1"
+                    className="flex-1 text-xs"
                   />
                 </div>
               </div>
@@ -215,7 +325,7 @@ export function Configuracoes() {
                   <Input
                     value={cores.secondary}
                     onChange={(e) => handleCorChange('secondary', e.target.value)}
-                    className="flex-1"
+                    className="flex-1 text-xs"
                   />
                 </div>
               </div>
@@ -233,7 +343,7 @@ export function Configuracoes() {
                   <Input
                     value={cores.success}
                     onChange={(e) => handleCorChange('success', e.target.value)}
-                    className="flex-1"
+                    className="flex-1 text-xs"
                   />
                 </div>
               </div>
@@ -251,7 +361,7 @@ export function Configuracoes() {
                   <Input
                     value={cores.warning}
                     onChange={(e) => handleCorChange('warning', e.target.value)}
-                    className="flex-1"
+                    className="flex-1 text-xs"
                   />
                 </div>
               </div>
@@ -269,7 +379,7 @@ export function Configuracoes() {
                   <Input
                     value={cores.danger}
                     onChange={(e) => handleCorChange('danger', e.target.value)}
-                    className="flex-1"
+                    className="flex-1 text-xs"
                   />
                 </div>
               </div>
@@ -288,27 +398,27 @@ export function Configuracoes() {
               <h4 className="font-medium text-gray-900 mb-2">Preview das Cores</h4>
               <div className="flex gap-2">
                 <div 
-                  className="w-8 h-8 rounded border" 
+                  className="w-8 h-8 rounded border shadow-sm" 
                   style={{ backgroundColor: cores.primary }}
                   title="Primária"
                 />
                 <div 
-                  className="w-8 h-8 rounded border" 
+                  className="w-8 h-8 rounded border shadow-sm" 
                   style={{ backgroundColor: cores.secondary }}
                   title="Secundária"
                 />
                 <div 
-                  className="w-8 h-8 rounded border" 
+                  className="w-8 h-8 rounded border shadow-sm" 
                   style={{ backgroundColor: cores.success }}
                   title="Sucesso"
                 />
                 <div 
-                  className="w-8 h-8 rounded border" 
+                  className="w-8 h-8 rounded border shadow-sm" 
                   style={{ backgroundColor: cores.warning }}
                   title="Aviso"
                 />
                 <div 
-                  className="w-8 h-8 rounded border" 
+                  className="w-8 h-8 rounded border shadow-sm" 
                   style={{ backgroundColor: cores.danger }}
                   title="Erro"
                 />

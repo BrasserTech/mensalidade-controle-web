@@ -1,22 +1,23 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, CreditCard, AlertTriangle, DollarSign } from "lucide-react";
+import { TrendingUp, User, CreditCard, AlertTriangle, DollarSign } from "lucide-react";
 import { DashboardStats } from "@/types";
 
 interface DashboardProps {
   stats: DashboardStats;
+  onVerDetalhes?: () => void;
 }
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
-export function Dashboard({ stats }: DashboardProps) {
+export function Dashboard({ stats, onVerDetalhes }: DashboardProps) {
   const statCards = [
     {
       title: "Clientes Ativos",
       value: stats.clientesAtivos,
       description: "Total de clientes com contratos ativos",
-      icon: Users,
+      icon: User,
       color: "text-primary",
       bgColor: "bg-primary-50"
     },
@@ -186,9 +187,12 @@ export function Dashboard({ stats }: DashboardProps) {
                   {stats.mensalidadesAtraso} mensalidade(s) em atraso precisam de atenção
                 </p>
               </div>
-              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+              <Button 
+                onClick={onVerDetalhes}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
                 Ver Detalhes
-              </button>
+              </Button>
             </div>
           </div>
         </CardContent>
