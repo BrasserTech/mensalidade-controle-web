@@ -46,23 +46,31 @@ export function Clientes() {
       .catch(err => console.error('Erro ao adicionar cliente:', err));
   };
 
-  const onUpdateCliente = (id: string, cliente: Partial<Cliente>) => {
-    fetch(`http://localhost:3001/clientes/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cliente),
+const onUpdateCliente = (id: string, cliente: Omit<Cliente, 'id' | 'dataCadastro'>) => {
+  fetch(`http://localhost:3001/clientes/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cliente),
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Falha ao atualizar");
+      return res.json();
     })
-      .then(res => res.json())
-      .then(atualizado => {
-        setClientes(prev =>
-          prev.map(c => (c.id === String(id)
-            ? { ...atualizado, id: String(atualizado.id), dataCadastro: new Date(atualizado.data_cadastro) }
-            : c)
-          )
-        );
-      })
-      .catch(err => console.error('Erro ao atualizar cliente:', err));
-  };
+    .then(atualizado => {
+      setClientes(prev =>
+        prev.map(c =>
+          c.id === String(id)
+            ? {
+                ...atualizado,
+                id: String(atualizado.id),
+                dataCadastro: new Date(atualizado.data_cadastro),
+              }
+            : c
+        )
+      );
+    })
+    .catch(err => console.error('Erro ao atualizar cliente:', err));
+};
 
   const onDeleteCliente = (id: string) => {
     fetch(`http://localhost:3001/clientes/${id}`, {
@@ -72,24 +80,36 @@ export function Clientes() {
       .catch(err => console.error('Erro ao deletar cliente:', err));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingCliente) {
-      onUpdateCliente(editingCliente.id, formData);
-      setEditingCliente(null);
-    } else {
-      onAddCliente(formData);
-    }
-    setFormData({
-      nome: '',
-      email: '',
-      telefone: '',
-      cpfCnpj: '',
-      status: 'Ativo',
-      observacoes: ''
-    });
-    setShowForm(false);
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const clienteData = {
+    nome: formData.nome,
+    email: formData.email,
+    telefone: formData.telefone,
+    cpfCnpj: formData.cpfCnpj,
+    observacoes: formData.observacoes,
+    status: formData.status,
   };
+
+  if (editingCliente) {
+    onUpdateCliente(editingCliente.id, clienteData);
+    setEditingCliente(null);
+  } else {
+    onAddCliente(clienteData);
+  }
+
+  setFormData({
+    nome: '',
+    email: '',
+    telefone: '',
+    cpfCnpj: '',
+    status: 'Ativo',
+    observacoes: '',
+  });
+  setShowForm(false);
+};
+
 
   const handleEdit = (cliente: Cliente) => {
     setEditingCliente(cliente);

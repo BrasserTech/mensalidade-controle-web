@@ -1,63 +1,90 @@
+// Este é o arquivo que devemos otimizar para lidar com a lógica dos contratos:
+// src/routes/contratosRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Listar contratos com dados do cliente e serviço
+// Buscar todos os contratos
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT c.*, cli.nome AS cliente_nome, s.nome AS servico_nome
-      FROM contratos c
-      JOIN clientes cli ON c.cliente_id = cli.id
-      JOIN servicos s ON c.servico_id = s.id
-      ORDER BY c.id
-    `);
+    const result = await pool.query('SELECT * FROM contratos ORDER BY dataInicio DESC');
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    res.status(500).json({ error: 'Erro ao buscar contratos', details: err.message });
   }
 });
 
-// Criar contrato
+// Criar novo contrato com cálculo interno de dataTermino e valorTotal
 router.post('/', async (req, res) => {
-  const { cliente_id, servico_id, valor, forma_pagamento, data_inicio, ativo } = req.body;
   try {
-    const result = await pool.query(
-      `INSERT INTO contratos (cliente_id, servico_id, valor, forma_pagamento, data_inicio, ativo)
+    const { clienteId, servicoId, dataInicio, status } = req.body;
+
+    // Verificar se cliente existe
+    const clienteCheck = await pool.query('SELECT id FROM clientes WHERE id = $1', [clienteId]);
+    if (clienteCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Cliente não encontrado' });
+    }
+
+    // Buscar dados do serviço para calcular valorTotal e dataTermino
+    const servicoRes = await pool.query('SELECT valorMensal, duracaoContrato FROM servicos WHERE id = $1', [servicoId]);
+    const servico = servicoRes.rows[0];
+    if (!servico) {
+      return res.status(400).json({ error: 'Serviço não encontrado' });
+    }
+
+    const dataInicioObj = new Date(dataInicio);
+    const dataTerminoObj = new Date(dataInicioObj);
+    dataTerminoObj.setMonth(dataTerminoObj.getMonth() + servico.duracaoContrato);
+
+    const valorTotal = servico.valorMensal * servico.duracaoContrato;
+
+    const insert = await pool.query(
+      `INSERT INTO contratos (clienteId, servicoId, dataInicio, dataTermino, status, valorTotal)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [cliente_id, servico_id, valor, forma_pagamento, data_inicio, ativo]
+      [clienteId, servicoId, dataInicioObj, dataTerminoObj, status, valorTotal]
     );
-    res.status(201).json(result.rows[0]);
+
+    res.status(201).json(insert.rows[0]);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    res.status(500).json({ error: 'Erro ao criar contrato', details: err.message });
   }
 });
 
 // Atualizar contrato
 router.put('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { cliente_id, servico_id, valor, forma_pagamento, data_inicio, ativo } = req.body;
   try {
-    const result = await pool.query(
-      `UPDATE contratos
-       SET cliente_id = $1, servico_id = $2, valor = $3, forma_pagamento = $4, data_inicio = $5, ativo = $6
-       WHERE id = $7 RETURNING *`,
-      [cliente_id, servico_id, valor, forma_pagamento, data_inicio, ativo, id]
+    const { id } = req.params;
+    const { clienteId, servicoId, dataInicio, status } = req.body;
+
+    const servicoRes = await pool.query('SELECT valorMensal, duracaoContrato FROM servicos WHERE id = $1', [servicoId]);
+    const servico = servicoRes.rows[0];
+    if (!servico) return res.status(400).json({ error: 'Serviço não encontrado' });
+
+    const dataInicioObj = new Date(dataInicio);
+    const dataTerminoObj = new Date(dataInicioObj);
+    dataTerminoObj.setMonth(dataTerminoObj.getMonth() + servico.duracaoContrato);
+    const valorTotal = servico.valorMensal * servico.duracaoContrato;
+
+    await pool.query(
+      `UPDATE contratos SET clienteId=$1, servicoId=$2, dataInicio=$3, dataTermino=$4, status=$5, valorTotal=$6 WHERE id=$7`,
+      [clienteId, servicoId, dataInicioObj, dataTerminoObj, status, valorTotal, id]
     );
-    res.json(result.rows[0]);
+
+    res.sendStatus(204);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    res.status(500).json({ error: 'Erro ao atualizar contrato', details: err.message });
   }
 });
 
 // Deletar contrato
 router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
   try {
+    const { id } = req.params;
     await pool.query('DELETE FROM contratos WHERE id = $1', [id]);
-    res.status(204).send();
+    res.sendStatus(204);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    res.status(500).json({ error: 'Erro ao deletar contrato', details: err.message });
   }
 });
 
