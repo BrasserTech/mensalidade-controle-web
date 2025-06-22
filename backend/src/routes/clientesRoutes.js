@@ -53,6 +53,16 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM clientes ORDER BY nome');
+    res.json(rows);
+  } catch (err) {
+    console.error('Erro ao buscar clientes:', err);
+    res.status(500).json({ error: 'Erro ao buscar clientes' });
+  }
+});
+
 // PUT /clientes/:id - Atualiza um cliente existente
 router.put('/:id', async (req, res) => {
   try {

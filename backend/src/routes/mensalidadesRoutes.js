@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Listar mensalidades com nome do cliente e serviço
+// Listar todas as mensalidades com nome do cliente e serviço
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -15,50 +15,116 @@ router.get('/', async (req, res) => {
     `);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error('Erro ao listar mensalidades:', err);
+    res.status(500).json({ erro: 'Erro ao listar mensalidades', detalhes: err.message });
   }
 });
 
-// Criar mensalidade
+// Criar uma nova mensalidade
 router.post('/', async (req, res) => {
-  const { contrato_id, mes_referencia, valor, vencimento, data_pagamento, forma_pagamento, status_pagamento } = req.body;
+  const {
+    contratoId,
+    mesReferencia,
+    valor,
+    dataVencimento,
+    dataPagamento,
+    formaPagamento,
+    statusPagamento
+  } = req.body;
+
   try {
     const result = await pool.query(
-      `INSERT INTO mensalidades (contrato_id, mes_referencia, valor, vencimento, data_pagamento, forma_pagamento, status_pagamento)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [contrato_id, mes_referencia, valor, vencimento, data_pagamento, forma_pagamento, status_pagamento]
+      `INSERT INTO mensalidades (
+        contrato_id, mes_referencia, valor, vencimento,
+        data_pagamento, forma_pagamento, status_pagamento
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`,
+      [
+        contratoId,
+        mesReferencia,
+        valor,
+        dataVencimento,
+        dataPagamento || null,
+        formaPagamento || null,
+        statusPagamento
+      ]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error('Erro ao criar mensalidade:', err);
+    res.status(500).json({ erro: 'Erro ao criar mensalidade', detalhes: err.message });
   }
 });
 
-// Atualizar mensalidade
+// Atualizar uma mensalidade (valor e vencimento)
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { valor, vencimento, data_pagamento, forma_pagamento, status_pagamento } = req.body;
+  const {
+    valor,
+    dataVencimento,
+    dataPagamento,
+    formaPagamento,
+    statusPagamento
+  } = req.body;
+
   try {
     const result = await pool.query(
       `UPDATE mensalidades
-       SET valor = $1, vencimento = $2, data_pagamento = $3, forma_pagamento = $4, status_pagamento = $5
-       WHERE id = $6 RETURNING *`,
-      [valor, vencimento, data_pagamento, forma_pagamento, status_pagamento, id]
+       SET valor = $1,
+           vencimento = $2,
+           data_pagamento = $3,
+           forma_pagamento = $4,
+           status_pagamento = $5
+       WHERE id = $6
+       RETURNING *`,
+      [
+        valor,
+        dataVencimento,
+        dataPagamento || null,
+        formaPagamento || null,
+        statusPagamento,
+        id
+      ]
     );
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error('Erro ao atualizar mensalidade:', err);
+    res.status(500).json({ erro: 'Erro ao atualizar mensalidade', detalhes: err.message });
   }
 });
 
-// Deletar mensalidade
+// Marcar mensalidade como paga
+router.put('/:id/pagar', async (req, res) => {
+  const { id } = req.params;
+  const { dataPagamento, formaPagamento } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE mensalidades
+       SET status_pagamento = 'Pago',
+           data_pagamento = $1,
+           forma_pagamento = $2
+       WHERE id = $3
+       RETURNING *`,
+      [dataPagamento, formaPagamento, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Erro ao marcar como paga:', err);
+    res.status(500).json({ erro: 'Erro ao marcar como paga', detalhes: err.message });
+  }
+});
+
+// Excluir mensalidade
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
+
   try {
     await pool.query('DELETE FROM mensalidades WHERE id = $1', [id]);
-    res.status(204).send();
+    res.sendStatus(204);
   } catch (err) {
-    res.status(500).json({ erro: err.message });
+    console.error('Erro ao excluir mensalidade:', err);
+    res.status(500).json({ erro: 'Erro ao excluir mensalidade', detalhes: err.message });
   }
 });
 

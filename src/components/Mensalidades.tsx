@@ -1,127 +1,145 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, Check, Clock, AlertTriangle, User, Calendar, Edit, Trash2 } from "lucide-react";
 import { Mensalidade, Cliente, Contrato, Servico } from "@/types";
 import { toast } from "sonner";
 
-interface MensalidadesProps {
-  mensalidades: Mensalidade[];
-  clientes: Cliente[];
-  contratos: Contrato[];
-  servicos: Servico[];
-  onUpdatePagamento: (id: string, pagamento: {
-    statusPagamento: 'Pago';
-    dataPagamento: Date;
-    formaPagamento: 'Pix' | 'Boleto' | 'Cartão';
-  }) => void;
-  onAddMensalidade: () => void;
-  onUpdateMensalidade: (id: string, mensalidade: Partial<Mensalidade>) => void;
-  onDeleteMensalidade: (id: string) => void;
-}
+export function Mensalidades() {
+  const [mensalidades, setMensalidades] = useState<Mensalidade[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [contratos, setContratos] = useState<Contrato[]>([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
 
-export function Mensalidades({ 
-  mensalidades, 
-  clientes, 
-  contratos, 
-  servicos, 
-  onUpdatePagamento, 
-  onAddMensalidade,
-  onUpdateMensalidade,
-  onDeleteMensalidade 
-}: MensalidadesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [showPagamentoForm, setShowPagamentoForm] = useState<string | null>(null);
   const [showEditForm, setShowEditForm] = useState<string | null>(null);
   const [formaPagamento, setFormaPagamento] = useState<'Pix' | 'Boleto' | 'Cartão'>('Pix');
-  const [editFormData, setEditFormData] = useState({
-    valor: '',
-    dataVencimento: ''
-  });
+  const [editFormData, setEditFormData] = useState({ valor: '', dataVencimento: '' });
+
+  const fetchAllData = async () => {
+    try {
+      const [m, c, s, ct] = await Promise.all([
+        fetch('http://localhost:3001/mensalidades').then(res => res.json()),
+        fetch('http://localhost:3001/clientes').then(res => res.json()),
+        fetch('http://localhost:3001/servicos').then(res => res.json()),
+        fetch('http://localhost:3001/contratos').then(res => res.json()),
+      ]);
+      setMensalidades(m);
+      setClientes(c);
+      setServicos(s);
+      setContratos(ct);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    }
+  };
+
+  useEffect(() => { fetchAllData(); }, []);
 
   const getClienteNome = (contratoId: string) => {
     const contrato = contratos.find(c => c.id === contratoId);
-    if (!contrato) return 'Cliente não encontrado';
-    const cliente = clientes.find(c => c.id === contrato.clienteId);
+    const cliente = clientes.find(c => c.id === contrato?.clienteId);
     return cliente?.nome || 'Cliente não encontrado';
   };
 
   const getServicoNome = (contratoId: string) => {
     const contrato = contratos.find(c => c.id === contratoId);
-    if (!contrato) return 'Serviço não encontrado';
-    const servico = servicos.find(s => s.id === contrato.servicoId);
+    const servico = servicos.find(s => s.id === contrato?.servicoId);
     return servico?.nome || 'Serviço não encontrado';
   };
 
-  const handleMarcarPago = (mensalidadeId: string) => {
-    onUpdatePagamento(mensalidadeId, {
-      statusPagamento: 'Pago',
-      dataPagamento: new Date(),
-      formaPagamento: formaPagamento
-    });
-    setShowPagamentoForm(null);
-    toast.success('Pagamento registrado com sucesso!');
-  };
-
-  const handleEditMensalidade = (mensalidade: Mensalidade) => {
-    setEditFormData({
-      valor: mensalidade.valor.toString(),
-      dataVencimento: mensalidade.dataVencimento.toISOString().split('T')[0]
-    });
-    setShowEditForm(mensalidade.id);
-  };
-
-  const handleUpdateMensalidade = (mensalidadeId: string) => {
-    onUpdateMensalidade(mensalidadeId, {
-      valor: parseFloat(editFormData.valor),
-      dataVencimento: new Date(editFormData.dataVencimento)
-    });
-    setShowEditForm(null);
-    toast.success('Mensalidade atualizada com sucesso!');
-  };
-
-  const handleDeleteMensalidade = (mensalidadeId: string) => {
-    if (confirm('Tem certeza que deseja excluir esta mensalidade?')) {
-      onDeleteMensalidade(mensalidadeId);
-      toast.success('Mensalidade excluída com sucesso!');
+  const marcarComoPago = async (id: string) => {
+    try {
+      await fetch(`http://localhost:3001/mensalidades/${id}/pagar`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          statusPagamento: 'Pago',
+          dataPagamento: new Date(),
+          formaPagamento,
+        }),
+      });
+      toast.success("Pagamento registrado com sucesso");
+      setShowPagamentoForm(null);
+      fetchAllData();
+    } catch (error) {
+      toast.error("Erro ao marcar pagamento");
     }
   };
 
-  const filteredMensalidades = mensalidades.filter(mensalidade => {
-    const clienteNome = getClienteNome(mensalidade.contratoId).toLowerCase();
-    const servicoNome = getServicoNome(mensalidade.contratoId).toLowerCase();
-    const matchesSearch = clienteNome.includes(searchTerm.toLowerCase()) || 
-                         servicoNome.includes(searchTerm.toLowerCase()) ||
-                         mensalidade.mesReferencia.includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'Todos' || mensalidade.statusPagamento === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  const salvarEdicao = async (id: string) => {
+    try {
+      await fetch(`http://localhost:3001/mensalidades/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          valor: parseFloat(editFormData.valor),
+          dataVencimento: new Date(editFormData.dataVencimento)
+        })
+      });
+      toast.success("Mensalidade atualizada");
+      setShowEditForm(null);
+      fetchAllData();
+    } catch (err) {
+      toast.error("Erro ao editar");
+    }
+  };
+
+  const excluirMensalidade = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir?')) return;
+    try {
+      await fetch(`http://localhost:3001/mensalidades/${id}`, { method: 'DELETE' });
+      toast.success("Mensalidade excluída");
+      fetchAllData();
+    } catch (err) {
+      toast.error("Erro ao excluir");
+    }
+  };
+
+  const adicionarMensalidade = async () => {
+    const contratoId = contratos[0]?.id;
+    if (!contratoId) return toast.error("Nenhum contrato disponível");
+
+    try {
+      await fetch('http://localhost:3001/mensalidades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contratoId,
+          mesReferencia: '06/2025',
+          valor: 100,
+          dataVencimento: new Date(),
+          statusPagamento: 'Em aberto'
+        })
+      });
+      toast.success("Mensalidade adicionada");
+      fetchAllData();
+    } catch (err) {
+      toast.error("Erro ao adicionar");
+    }
+  };
+
+  const mensalidadesFiltradas = mensalidades.filter(m => {
+    const nomeCliente = getClienteNome(m.contratoId).toLowerCase();
+    const nomeServico = getServicoNome(m.contratoId).toLowerCase();
+    const termo = searchTerm.toLowerCase();
+    const porNome = nomeCliente.includes(termo) || nomeServico.includes(termo) || m.mesReferencia.includes(termo);
+    const porStatus = statusFilter === 'Todos' || m.statusPagamento === statusFilter;
+    return porNome && porStatus;
   });
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pago':
-        return 'bg-green-100 text-green-800';
-      case 'Vencido':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-yellow-100 text-yellow-800';
-    }
+    if (status === 'Pago') return 'bg-green-100 text-green-800';
+    if (status === 'Vencido') return 'bg-red-100 text-red-800';
+    return 'bg-yellow-100 text-yellow-800';
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Pago':
-        return <Check className="w-4 h-4" />;
-      case 'Vencido':
-        return <AlertTriangle className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
+    if (status === 'Pago') return <Check className="w-4 h-4" />;
+    if (status === 'Vencido') return <AlertTriangle className="w-4 h-4" />;
+    return <Clock className="w-4 h-4" />;
   };
 
   return (
@@ -129,195 +147,93 @@ export function Mensalidades({
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Mensalidades</h1>
-          <p className="text-gray-600">Controle de pagamentos e mensalidades dos contratos</p>
+          <p className="text-gray-600">Gerencie pagamentos mensais de contratos</p>
         </div>
-        <Button onClick={onAddMensalidade} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Nova Mensalidade
-        </Button>
+        <Button onClick={adicionarMensalidade}><Plus className="mr-1 h-4 w-4" />Nova Mensalidade</Button>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Buscar por cliente, serviço ou mês..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Input className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Buscar mensalidade..." />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="Todos">Todos os Status</option>
-          <option value="Em aberto">Em aberto</option>
-          <option value="Pago">Pago</option>
-          <option value="Vencido">Vencido</option>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border p-2 rounded-md">
+          <option>Todos</option>
+          <option>Em aberto</option>
+          <option>Pago</option>
+          <option>Vencido</option>
         </select>
       </div>
 
       <div className="grid gap-4">
-        {filteredMensalidades.length === 0 ? (
-          <Card>
-            <CardContent className="py-8">
-              <div className="text-center">
-                <Calendar className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchTerm || statusFilter !== 'Todos' ? 'Nenhuma mensalidade encontrada' : 'Nenhuma mensalidade cadastrada'}
-                </h3>
-                <p className="text-gray-500">
-                  {searchTerm || statusFilter !== 'Todos' 
-                    ? 'Tente ajustar os filtros de busca' 
-                    : 'As mensalidades aparecerão aqui conforme os contratos forem criados'
-                  }
-                </p>
+        {mensalidadesFiltradas.map((m) => (
+          <Card key={m.id}>
+            <CardContent className="p-4 flex justify-between items-start">
+              <div className="space-y-1 text-sm">
+                <div className="flex gap-2 items-center">
+                  <User className="w-4 h-4 text-gray-500" />
+                  <h3 className="font-medium">{getClienteNome(m.contratoId)}</h3>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(m.statusPagamento)}`}>
+                    {getStatusIcon(m.statusPagamento)} {m.statusPagamento}
+                  </span>
+                </div>
+                <p><strong>Serviço:</strong> {getServicoNome(m.contratoId)}</p>
+                <p><strong>Mês:</strong> {m.mesReferencia}</p>
+                <p><strong>Valor:</strong> R$ {m.valor.toFixed(2)}</p>
+                <p><strong>Vencimento:</strong> {new Date(m.dataVencimento).toLocaleDateString()}</p>
+                {m.statusPagamento === 'Pago' && (
+                  <>
+                    <p><strong>Pago em:</strong> {new Date(m.dataPagamento!).toLocaleDateString()}</p>
+                    <p><strong>Forma:</strong> {m.formaPagamento}</p>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {showEditForm === m.id ? (
+                  <>
+                    <Input type="number" value={editFormData.valor} onChange={(e) => setEditFormData({ ...editFormData, valor: e.target.value })} />
+                    <Input type="date" value={editFormData.dataVencimento} onChange={(e) => setEditFormData({ ...editFormData, dataVencimento: e.target.value })} />
+                    <Button size="sm" onClick={() => salvarEdicao(m.id)}>Salvar</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowEditForm(null)}>Cancelar</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setEditFormData({
+                        valor: m.valor.toString(),
+                        dataVencimento: new Date(m.dataVencimento).toISOString().split('T')[0]
+                      });
+                      setShowEditForm(m.id);
+                    }}><Edit className="w-3 h-3" /> Editar</Button>
+
+                    <Button size="sm" variant="outline" className="text-red-600" onClick={() => excluirMensalidade(m.id)}>
+                      <Trash2 className="w-3 h-3" /> Excluir
+                    </Button>
+
+                    {m.statusPagamento !== 'Pago' && showPagamentoForm !== m.id && (
+                      <Button size="sm" onClick={() => setShowPagamentoForm(m.id)}>
+                        <Check className="w-3 h-3" /> Marcar como Pago
+                      </Button>
+                    )}
+
+                    {showPagamentoForm === m.id && (
+                      <>
+                        <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value as any)} className="text-sm border rounded px-2 py-1">
+                          <option value="Pix">Pix</option>
+                          <option value="Boleto">Boleto</option>
+                          <option value="Cartão">Cartão</option>
+                        </select>
+                        <Button size="sm" onClick={() => marcarComoPago(m.id)}>Confirmar</Button>
+                        <Button size="sm" variant="outline" onClick={() => setShowPagamentoForm(null)}>Cancelar</Button>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
-        ) : (
-          filteredMensalidades.map((mensalidade) => (
-            <Card key={mensalidade.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <User className="w-5 h-5 text-gray-400" />
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {getClienteNome(mensalidade.contratoId)}
-                      </h3>
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(mensalidade.statusPagamento)}`}>
-                        {getStatusIcon(mensalidade.statusPagamento)}
-                        {mensalidade.statusPagamento}
-                      </span>
-                    </div>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <p><strong>Serviço:</strong> {getServicoNome(mensalidade.contratoId)}</p>
-                      <p><strong>Mês de Referência:</strong> {mensalidade.mesReferencia}</p>
-                      <p><strong>Valor:</strong> R$ {mensalidade.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                      <p><strong>Vencimento:</strong> {mensalidade.dataVencimento.toLocaleDateString('pt-BR')}</p>
-                      {mensalidade.dataPagamento && (
-                        <>
-                          <p><strong>Data de Pagamento:</strong> {mensalidade.dataPagamento.toLocaleDateString('pt-BR')}</p>
-                          <p><strong>Forma de Pagamento:</strong> {mensalidade.formaPagamento}</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {/* Formulário de edição */}
-                    {showEditForm === mensalidade.id && (
-                      <div className="bg-gray-50 p-3 rounded-lg mb-2">
-                        <div className="space-y-2">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="Valor"
-                            value={editFormData.valor}
-                            onChange={(e) => setEditFormData({...editFormData, valor: e.target.value})}
-                            className="text-sm"
-                          />
-                          <Input
-                            type="date"
-                            value={editFormData.dataVencimento}
-                            onChange={(e) => setEditFormData({...editFormData, dataVencimento: e.target.value})}
-                            className="text-sm"
-                          />
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              onClick={() => handleUpdateMensalidade(mensalidade.id)}
-                              className="flex-1 text-xs"
-                            >
-                              Salvar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setShowEditForm(null)}
-                              className="flex-1 text-xs"
-                            >
-                              Cancelar
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Formulário de pagamento */}
-                    {showPagamentoForm === mensalidade.id && mensalidade.statusPagamento !== 'Pago' && (
-                      <div className="bg-gray-50 p-3 rounded-lg mb-2">
-                        <div className="space-y-2">
-                          <select
-                            value={formaPagamento}
-                            onChange={(e) => setFormaPagamento(e.target.value as 'Pix' | 'Boleto' | 'Cartão')}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                          >
-                            <option value="Pix">Pix</option>
-                            <option value="Boleto">Boleto</option>
-                            <option value="Cartão">Cartão</option>
-                          </select>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              onClick={() => handleMarcarPago(mensalidade.id)}
-                              className="flex-1 text-xs"
-                            >
-                              Confirmar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setShowPagamentoForm(null)}
-                              className="flex-1 text-xs"
-                            >
-                              Cancelar
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Botões de ação */}
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditMensalidade(mensalidade)}
-                        className="flex items-center gap-1 text-xs"
-                      >
-                        <Edit className="w-3 h-3" />
-                        Editar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteMensalidade(mensalidade.id)}
-                        className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Excluir
-                      </Button>
-                    </div>
-
-                    {mensalidade.statusPagamento !== 'Pago' && showPagamentoForm !== mensalidade.id && (
-                      <Button
-                        size="sm"
-                        onClick={() => setShowPagamentoForm(mensalidade.id)}
-                        className="flex items-center gap-1 text-xs"
-                      >
-                        <Check className="w-3 h-3" />
-                        Marcar como Pago
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+        ))}
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -14,14 +13,19 @@ import { DetalhesAlert } from "@/components/DetalhesAlert";
 import { AdicionarMensalidade } from "@/components/AdicionarMensalidade";
 import { useSystemData } from "@/hooks/useSystemData";
 import { Toaster } from "@/components/ui/sonner";
+import { Cliente, Contrato, Servico, Mensalidade } from "@/types";
 
 const Index = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState("dashboard");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ nome: string; email: string; tipo: 'Administrador' | 'Operador' } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{
+    nome: string;
+    email: string;
+    tipo: "Administrador" | "Operador";
+  } | null>(null);
   const [showDetalhesAlert, setShowDetalhesAlert] = useState(false);
   const [showAdicionarMensalidade, setShowAdicionarMensalidade] = useState(false);
-  
+
   const {
     clientes,
     servicos,
@@ -40,10 +44,14 @@ const Index = () => {
     updateMensalidadePagamento,
     updateMensalidade,
     deleteMensalidade,
-    addMensalidade
+    addMensalidade,
   } = useSystemData();
 
-  const handleLogin = (user: { nome: string; email: string; tipo: 'Administrador' | 'Operador' }) => {
+  const handleLogin = (user: {
+    nome: string;
+    email: string;
+    tipo: "Administrador" | "Operador";
+  }) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
   };
@@ -51,7 +59,7 @@ const Index = () => {
   const handleLogout = () => {
     setCurrentUser(null);
     setIsAuthenticated(false);
-    setActiveSection('dashboard');
+    setActiveSection("dashboard");
   };
 
   if (!isAuthenticated) {
@@ -60,14 +68,14 @@ const Index = () => {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'dashboard':
+      case "dashboard":
         return (
-          <Dashboard 
-            stats={getDashboardStats()} 
+          <Dashboard
+            stats={getDashboardStats()}
             onVerDetalhes={() => setShowDetalhesAlert(true)}
           />
         );
-      case 'clientes':
+      case "clientes":
         return (
           <Clientes
             clientes={clientes}
@@ -76,7 +84,7 @@ const Index = () => {
             onDeleteCliente={deleteCliente}
           />
         );
-      case 'servicos':
+      case "servicos":
         return (
           <Servicos
             servicos={servicos}
@@ -85,10 +93,14 @@ const Index = () => {
             onDeleteServico={deleteServico}
           />
         );
-      case 'contratos':
+      case "contratos":
         return (
           <Contratos
-            contratos={contratos}
+            contratos={contratos.map((contrato) => ({
+              ...contrato,
+              nome_cliente: clientes.find((c) => c.id === contrato.clienteId)?.nome || "Desconhecido",
+              nome_servico: servicos.find((s) => s.id === contrato.servicoId)?.nome || "Desconhecido",
+            }))}
             clientes={clientes}
             servicos={servicos}
             onAddContrato={addContrato}
@@ -96,7 +108,7 @@ const Index = () => {
             onDeleteContrato={deleteContrato}
           />
         );
-      case 'mensalidades':
+      case "mensalidades":
         return (
           <Mensalidades
             mensalidades={mensalidades}
@@ -109,7 +121,7 @@ const Index = () => {
             onAddMensalidade={() => setShowAdicionarMensalidade(true)}
           />
         );
-      case 'relatórios':
+      case "relatórios":
         return (
           <Relatorios
             clientes={clientes}
@@ -118,10 +130,17 @@ const Index = () => {
             servicos={servicos}
           />
         );
-      case 'configurações':
-        return <Configuracoes currentUser={currentUser} onLogout={handleLogout} />;
+      case "configurações":
+        return (
+          <Configuracoes currentUser={currentUser} onLogout={handleLogout} />
+        );
       default:
-        return <Dashboard stats={getDashboardStats()} onVerDetalhes={() => setShowDetalhesAlert(true)} />;
+        return (
+          <Dashboard
+            stats={getDashboardStats()}
+            onVerDetalhes={() => setShowDetalhesAlert(true)}
+          />
+        );
     }
   };
 
@@ -138,7 +157,7 @@ const Index = () => {
           </div>
         </main>
       </div>
-      
+
       <DetalhesAlert
         isOpen={showDetalhesAlert}
         onClose={() => setShowDetalhesAlert(false)}
@@ -147,7 +166,7 @@ const Index = () => {
         contratos={contratos}
         servicos={servicos}
       />
-      
+
       <AdicionarMensalidade
         isOpen={showAdicionarMensalidade}
         onClose={() => setShowAdicionarMensalidade(false)}
@@ -156,7 +175,7 @@ const Index = () => {
         servicos={servicos}
         onAddMensalidade={addMensalidade}
       />
-      
+
       <Toaster />
     </SidebarProvider>
   );

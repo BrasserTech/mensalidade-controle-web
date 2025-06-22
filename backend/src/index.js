@@ -4,34 +4,38 @@ require('dotenv').config();
 
 const app = express();
 
-// Middlewares
+// === MIDDLEWARES GERAIS ===
 app.use(cors());
 app.use(express.json());
 
-// Rotas com tratamento de erro para facilitar debug
+// === FUNÇÃO DE CARREGAMENTO DE ROTAS COM LOG INTELIGENTE ===
 const carregarRotas = (caminho, nome) => {
   try {
     const rota = require(caminho);
     app.use(`/${nome}`, rota);
-    console.log(`✔️  Rotas de ${nome} carregadas com sucesso`);
+    console.log(`✅ Rotas de /${nome} carregadas com sucesso`);
   } catch (err) {
-    console.error(`❌ Erro ao carregar rotas de ${nome}:`, err.message);
+    console.error(`❌ Falha ao carregar rotas de /${nome}: ${err.message}`);
   }
 };
 
-// Carregamento das rotas
-carregarRotas('./routes/clientesRoutes', 'clientes');
-carregarRotas('./routes/servicosRoutes', 'servicos');
-carregarRotas('./routes/contratosRoutes', 'contratos');
-carregarRotas('./routes/mensalidadesRoutes', 'mensalidades');
+// === ROTAS ===
+const rotas = [
+  { caminho: './routes/clientesRoutes', nome: 'clientes' },
+  { caminho: './routes/servicosRoutes', nome: 'servicos' },
+  { caminho: './routes/contratosRoutes', nome: 'contratos' },
+  { caminho: './routes/mensalidadesRoutes', nome: 'mensalidades' }
+];
 
-// Rota raiz (opcional para testes rápidos)
+rotas.forEach(({ caminho, nome }) => carregarRotas(caminho, nome));
+
+// === ROTA RAIZ PARA TESTE ===
 app.get('/', (req, res) => {
-  res.send('API do sistema de mensalidades funcionando');
+  res.send('✅ API do sistema de mensalidades funcionando corretamente');
 });
 
-// Inicialização do servidor
+// === INICIALIZAÇÃO DO SERVIDOR ===
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+  console.log(`🚀 Servidor disponível em: http://localhost:${PORT}`);
 });

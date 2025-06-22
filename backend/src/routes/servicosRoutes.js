@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Listar todos os serviços com filtro opcional por nome
+// GET - Listar todos os serviços, com filtro opcional por nome
 router.get('/', async (req, res) => {
   try {
     const { nome } = req.query;
@@ -19,24 +19,27 @@ router.get('/', async (req, res) => {
     const result = await pool.query(query, values);
     res.json(result.rows);
   } catch (err) {
-    console.error('Erro ao listar serviços:', err);
+    console.error('Erro ao buscar serviços:', err);
     res.status(500).json({ erro: 'Erro ao buscar serviços', detalhes: err.message });
   }
 });
 
-// Criar novo serviço
+// POST - Criar novo serviço
 router.post('/', async (req, res) => {
-  const { nome, descricao, valorMensal, duracaoContrato } = req.body;
+  const { nome, descricao, valor_mensal, duracao_contrato } = req.body;
 
-  if (!nome || !valorMensal || !duracaoContrato) {
-    return res.status(400).json({ erro: 'Campos obrigatórios: nome, valorMensal, duracaoContrato' });
+  if (!nome || valor_mensal == null || duracao_contrato == null) {
+    return res.status(400).json({
+      erro: 'Campos obrigatórios: nome, valor_mensal, duracao_contrato',
+    });
   }
 
   try {
     const result = await pool.query(
-      `INSERT INTO servicos (nome, descricao, valorMensal, duracaoContrato)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [nome, descricao || '', valorMensal, duracaoContrato]
+      `INSERT INTO servicos (nome, descricao, valor_mensal, duracao_contrato)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [nome, descricao || '', valor_mensal, duracao_contrato]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -45,22 +48,30 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Atualizar serviço
+// PUT - Atualizar serviço existente
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { nome, descricao, valorMensal, duracaoContrato } = req.body;
+  const { nome, descricao, valor_mensal, duracao_contrato } = req.body;
 
-  if (!nome || !valorMensal || !duracaoContrato) {
-    return res.status(400).json({ erro: 'Campos obrigatórios: nome, valorMensal, duracaoContrato' });
+  if (!nome || valor_mensal == null || duracao_contrato == null) {
+    return res.status(400).json({
+      erro: 'Campos obrigatórios: nome, valor_mensal, duracao_contrato',
+    });
   }
 
   try {
     const result = await pool.query(
       `UPDATE servicos
-       SET nome = $1, descricao = $2, valorMensal = $3, duracaoContrato = $4
-       WHERE id = $5 RETURNING *`,
-      [nome, descricao || '', valorMensal, duracaoContrato, id]
+       SET nome = $1, descricao = $2, valor_mensal = $3, duracao_contrato = $4
+       WHERE id = $5
+       RETURNING *`,
+      [nome, descricao || '', valor_mensal, duracao_contrato, id]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: 'Serviço não encontrado' });
+    }
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Erro ao atualizar serviço:', err);
@@ -68,11 +79,17 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Deletar serviço
+// DELETE - Excluir serviço
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
+
   try {
-    await pool.query('DELETE FROM servicos WHERE id = $1', [id]);
+    const result = await pool.query('DELETE FROM servicos WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: 'Serviço não encontrado' });
+    }
+
     res.sendStatus(204);
   } catch (err) {
     console.error('Erro ao deletar serviço:', err);

@@ -18,14 +18,16 @@ export interface Servico {
   duracaoContrato: number; // em meses
 }
 
-export interface Contrato {
+export type Contrato = {
   id: string;
   clienteId: string;
   servicoId: string;
-  dataInicio: Date;
-  dataTermino: Date;
-  status: 'Ativo' | 'Finalizado';
-  valorTotal: number;
+  nome_cliente: string;
+  nome_servico: string;
+  dataInicio: string;
+  formaPagamento: string;
+  ativo: boolean;
+  valor: number;
 }
 
 export interface Mensalidade {
