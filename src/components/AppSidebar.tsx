@@ -26,36 +26,43 @@ const menuItems = [
     title: "Dashboard",
     url: "#dashboard",
     icon: BarChart3,
+    key: "dashboard"
   },
   {
     title: "Clientes",
     url: "#clientes",
     icon: Users,
+    key: "clientes"
   },
   {
     title: "Serviços",
     url: "#servicos",
     icon: FileText,
+    key: "serviços"
   },
   {
     title: "Contratos",
     url: "#contratos",
     icon: Calendar,
+    key: "contratos"
   },
   {
     title: "Mensalidades",
     url: "#mensalidades",
     icon: CreditCard,
+    key: "mensalidades"
   },
   {
     title: "Relatórios",
     url: "#relatorios",
     icon: DollarSign,
+    key: "relatórios"
   },
   {
     title: "Configurações",
     url: "#configuracoes",
     icon: Settings,
+    key: "configurações"
   },
 ]
 
@@ -89,9 +96,9 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
-                    onClick={() => onSectionChange(item.title.toLowerCase())}
+                    onClick={() => onSectionChange(item.key)}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 hover:bg-primary-50 ${
-                      activeSection === item.title.toLowerCase() 
+                      activeSection === item.key 
                         ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-500' 
                         : 'text-gray-600 hover:text-primary-600'
                     }`}
