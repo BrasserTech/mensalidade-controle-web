@@ -38,7 +38,6 @@ const menuItems = [
     title: "Serviços",
     key: "#servicos",
     icon: FileText,
-    key: "serviços"
   },
   {
     title: "Contratos",
