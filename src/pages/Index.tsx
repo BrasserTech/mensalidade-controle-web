@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -81,7 +82,7 @@ const Index = () => {
           />
         );
 
-      case "servicos":
+      case "serviços":
         return (
           <Servicos
             servicos={servicos}
