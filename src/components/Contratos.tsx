@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Cliente, Servico, Contrato } from "@/types";
 
 type Props = {
   contratos: Contrato[];
+  clientes: Cliente[];
+  servicos: Servico[];
   onAddContrato: (contrato: Omit<Contrato, 'id' | 'nome_cliente' | 'nome_servico'>) => void;
   onUpdateContrato: (id: string, contrato: Partial<Contrato>) => void;
   onDeleteContrato: (id: string) => void;
@@ -15,12 +17,12 @@ type Props = {
 
 export function Contratos({
   contratos,
+  clientes,
+  servicos,
   onAddContrato,
   onUpdateContrato,
   onDeleteContrato,
 }: Props) {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [servicos, setServicos] = useState<Servico[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingContrato, setEditingContrato] = useState<Contrato | null>(null);
@@ -38,27 +40,6 @@ export function Contratos({
     formaPagamento: 'Dinheiro',
     ativo: true,
   });
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [resClientes, resServicos] = await Promise.all([
-          fetch('http://192.168.68.106:3001/clientes'),
-          fetch('http://192.168.68.106:3001/servicos'),
-        ]);
-
-        const clientesData = await resClientes.json();
-        const servicosData = await resServicos.json();
-
-        setClientes(clientesData);
-        setServicos(servicosData);
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      }
-    }
-
-    fetchData();
-  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -81,12 +62,10 @@ export function Contratos({
       return;
     }
 
-    const dataInicio = new Date(formData.dataInicio);
-
-    const contratoData: Omit<Contrato, 'id' | 'nome_cliente' | 'nome_servico'> = { 
+    const contratoData: Omit<Contrato, 'id' | 'nome_cliente' | 'nome_servico'> = {
       clienteId: formData.clienteId,
       servicoId: formData.servicoId,
-      dataInicio: dataInicio.toISOString().split('T')[0],
+      dataInicio: new Date(formData.dataInicio).toISOString().split('T')[0],
       formaPagamento: formData.formaPagamento,
       ativo: formData.ativo,
       valor: servicoSelecionado.valorMensal,

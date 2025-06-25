@@ -1,42 +1,45 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, Check, Clock, AlertTriangle, User, Calendar, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Check, Clock, AlertTriangle, User, Edit, Trash2 } from "lucide-react";
 import { Mensalidade, Cliente, Contrato, Servico } from "@/types";
 import { toast } from "sonner";
 
-export function Mensalidades() {
-  const [mensalidades, setMensalidades] = useState<Mensalidade[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [contratos, setContratos] = useState<Contrato[]>([]);
-  const [servicos, setServicos] = useState<Servico[]>([]);
+type Props = {
+  mensalidades: Mensalidade[];
+  clientes: Cliente[];
+  contratos: Contrato[];
+  servicos: Servico[];
+  onUpdatePagamento: (
+    id: string,
+    pagamento: {
+      statusPagamento: "Pago";
+      dataPagamento: Date;
+      formaPagamento: "Pix" | "Cartão" | "Boleto";
+    }
+  ) => void;
+  onUpdateMensalidade: (id: string, dados: { valor: number; dataVencimento: Date }) => void;
+  onDeleteMensalidade: (id: string) => void;
+  onAddMensalidade: () => void;
+};
 
+export function Mensalidades({
+  mensalidades,
+  clientes,
+  contratos,
+  servicos,
+  onUpdatePagamento,
+  onUpdateMensalidade,
+  onDeleteMensalidade,
+  onAddMensalidade,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [showPagamentoForm, setShowPagamentoForm] = useState<string | null>(null);
   const [showEditForm, setShowEditForm] = useState<string | null>(null);
-  const [formaPagamento, setFormaPagamento] = useState<'Pix' | 'Boleto' | 'Cartão'>('Pix');
+  const [formaPagamento, setFormaPagamento] = useState<'Pix' | 'Cartão' | 'Boleto'>('Pix');
   const [editFormData, setEditFormData] = useState({ valor: '', dataVencimento: '' });
-
-  const fetchAllData = async () => {
-    try {
-      const [m, c, s, ct] = await Promise.all([
-        fetch('http://localhost:3001/mensalidades').then(res => res.json()),
-        fetch('http://localhost:3001/clientes').then(res => res.json()),
-        fetch('http://localhost:3001/servicos').then(res => res.json()),
-        fetch('http://localhost:3001/contratos').then(res => res.json()),
-      ]);
-      setMensalidades(m);
-      setClientes(c);
-      setServicos(s);
-      setContratos(ct);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    }
-  };
-
-  useEffect(() => { fetchAllData(); }, []);
 
   const getClienteNome = (contratoId: string) => {
     const contrato = contratos.find(c => c.id === contratoId);
@@ -50,82 +53,11 @@ export function Mensalidades() {
     return servico?.nome || 'Serviço não encontrado';
   };
 
-  const marcarComoPago = async (id: string) => {
-    try {
-      await fetch(`http://localhost:3001/mensalidades/${id}/pagar`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          statusPagamento: 'Pago',
-          dataPagamento: new Date(),
-          formaPagamento,
-        }),
-      });
-      toast.success("Pagamento registrado com sucesso");
-      setShowPagamentoForm(null);
-      fetchAllData();
-    } catch (error) {
-      toast.error("Erro ao marcar pagamento");
-    }
-  };
-
-  const salvarEdicao = async (id: string) => {
-    try {
-      await fetch(`http://localhost:3001/mensalidades/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          valor: parseFloat(editFormData.valor),
-          dataVencimento: new Date(editFormData.dataVencimento)
-        })
-      });
-      toast.success("Mensalidade atualizada");
-      setShowEditForm(null);
-      fetchAllData();
-    } catch (err) {
-      toast.error("Erro ao editar");
-    }
-  };
-
-  const excluirMensalidade = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir?')) return;
-    try {
-      await fetch(`http://localhost:3001/mensalidades/${id}`, { method: 'DELETE' });
-      toast.success("Mensalidade excluída");
-      fetchAllData();
-    } catch (err) {
-      toast.error("Erro ao excluir");
-    }
-  };
-
-  const adicionarMensalidade = async () => {
-    const contratoId = contratos[0]?.id;
-    if (!contratoId) return toast.error("Nenhum contrato disponível");
-
-    try {
-      await fetch('http://localhost:3001/mensalidades', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contratoId,
-          mesReferencia: '06/2025',
-          valor: 100,
-          dataVencimento: new Date(),
-          statusPagamento: 'Em aberto'
-        })
-      });
-      toast.success("Mensalidade adicionada");
-      fetchAllData();
-    } catch (err) {
-      toast.error("Erro ao adicionar");
-    }
-  };
-
   const mensalidadesFiltradas = mensalidades.filter(m => {
-    const nomeCliente = getClienteNome(m.contratoId).toLowerCase();
-    const nomeServico = getServicoNome(m.contratoId).toLowerCase();
+    const cliente = getClienteNome(m.contratoId).toLowerCase();
+    const servico = getServicoNome(m.contratoId).toLowerCase();
     const termo = searchTerm.toLowerCase();
-    const porNome = nomeCliente.includes(termo) || nomeServico.includes(termo) || m.mesReferencia.includes(termo);
+    const porNome = cliente.includes(termo) || servico.includes(termo) || m.mesReferencia.includes(termo);
     const porStatus = statusFilter === 'Todos' || m.statusPagamento === statusFilter;
     return porNome && porStatus;
   });
@@ -142,6 +74,25 @@ export function Mensalidades() {
     return <Clock className="w-4 h-4" />;
   };
 
+  const confirmarPagamento = (id: string) => {
+    onUpdatePagamento(id, {
+      statusPagamento: "Pago",
+      dataPagamento: new Date(),
+      formaPagamento,
+    });
+    toast.success("Pagamento confirmado");
+    setShowPagamentoForm(null);
+  };
+
+  const salvarEdicao = (id: string) => {
+    onUpdateMensalidade(id, {
+      valor: parseFloat(editFormData.valor),
+      dataVencimento: new Date(editFormData.dataVencimento),
+    });
+    toast.success("Mensalidade atualizada");
+    setShowEditForm(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -149,7 +100,7 @@ export function Mensalidades() {
           <h1 className="text-3xl font-bold text-gray-900">Mensalidades</h1>
           <p className="text-gray-600">Gerencie pagamentos mensais de contratos</p>
         </div>
-        <Button onClick={adicionarMensalidade}><Plus className="mr-1 h-4 w-4" />Nova Mensalidade</Button>
+        <Button onClick={onAddMensalidade}><Plus className="mr-1 h-4 w-4" />Nova Mensalidade</Button>
       </div>
 
       <div className="flex gap-4">
@@ -207,7 +158,7 @@ export function Mensalidades() {
                       setShowEditForm(m.id);
                     }}><Edit className="w-3 h-3" /> Editar</Button>
 
-                    <Button size="sm" variant="outline" className="text-red-600" onClick={() => excluirMensalidade(m.id)}>
+                    <Button size="sm" variant="outline" className="text-red-600" onClick={() => onDeleteMensalidade(m.id)}>
                       <Trash2 className="w-3 h-3" /> Excluir
                     </Button>
 
@@ -224,7 +175,7 @@ export function Mensalidades() {
                           <option value="Boleto">Boleto</option>
                           <option value="Cartão">Cartão</option>
                         </select>
-                        <Button size="sm" onClick={() => marcarComoPago(m.id)}>Confirmar</Button>
+                        <Button size="sm" onClick={() => confirmarPagamento(m.id)}>Confirmar</Button>
                         <Button size="sm" variant="outline" onClick={() => setShowPagamentoForm(null)}>Cancelar</Button>
                       </>
                     )}

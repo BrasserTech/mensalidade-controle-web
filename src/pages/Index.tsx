@@ -69,12 +69,8 @@ const Index = () => {
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return (
-          <Dashboard
-            stats={getDashboardStats()}
-            onVerDetalhes={() => setShowDetalhesAlert(true)}
-          />
-        );
+        return <Dashboard stats={getDashboardStats()} onVerDetalhes={() => setShowDetalhesAlert(true)} />;
+
       case "clientes":
         return (
           <Clientes
@@ -84,6 +80,7 @@ const Index = () => {
             onDeleteCliente={deleteCliente}
           />
         );
+
       case "servicos":
         return (
           <Servicos
@@ -93,14 +90,17 @@ const Index = () => {
             onDeleteServico={deleteServico}
           />
         );
+
       case "contratos":
+        const contratosComNomes = contratos.map((contrato) => ({
+          ...contrato,
+          nome_cliente: clientes.find((c) => c.id === contrato.clienteId)?.nome || "Desconhecido",
+          nome_servico: servicos.find((s) => s.id === contrato.servicoId)?.nome || "Desconhecido",
+        }));
+
         return (
           <Contratos
-            contratos={contratos.map((contrato) => ({
-              ...contrato,
-              nome_cliente: clientes.find((c) => c.id === contrato.clienteId)?.nome || "Desconhecido",
-              nome_servico: servicos.find((s) => s.id === contrato.servicoId)?.nome || "Desconhecido",
-            }))}
+            contratos={contratosComNomes}
             clientes={clientes}
             servicos={servicos}
             onAddContrato={addContrato}
@@ -108,6 +108,7 @@ const Index = () => {
             onDeleteContrato={deleteContrato}
           />
         );
+
       case "mensalidades":
         return (
           <Mensalidades
@@ -121,6 +122,7 @@ const Index = () => {
             onAddMensalidade={() => setShowAdicionarMensalidade(true)}
           />
         );
+
       case "relatórios":
         return (
           <Relatorios
@@ -130,17 +132,12 @@ const Index = () => {
             servicos={servicos}
           />
         );
+
       case "configurações":
-        return (
-          <Configuracoes currentUser={currentUser} onLogout={handleLogout} />
-        );
+        return <Configuracoes currentUser={currentUser} onLogout={handleLogout} />;
+
       default:
-        return (
-          <Dashboard
-            stats={getDashboardStats()}
-            onVerDetalhes={() => setShowDetalhesAlert(true)}
-          />
-        );
+        return <Dashboard stats={getDashboardStats()} onVerDetalhes={() => setShowDetalhesAlert(true)} />;
     }
   };
 

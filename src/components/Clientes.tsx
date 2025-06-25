@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Edit, Trash2, User } from "lucide-react";
 import { Cliente } from "@/types";
 
-export function Clientes() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+interface ClientesProps {
+  clientes: Cliente[];
+  onAddCliente: (cliente: Omit<Cliente, 'id' | 'dataCadastro'>) => void;
+  onUpdateCliente: (id: string, cliente: Partial<Cliente>) => void;
+  onDeleteCliente: (id: string) => void;
+}
+
+export function Clientes({ clientes, onAddCliente, onUpdateCliente, onDeleteCliente }: ClientesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -20,96 +26,35 @@ export function Clientes() {
     observacoes: '',
   });
 
-  useEffect(() => {
-    fetch('http://localhost:3001/clientes')
-      .then(res => res.json())
-      .then(data => setClientes(data.map((c: any) => ({
-        ...c,
-        id: String(c.id),
-        dataCadastro: new Date(c.data_cadastro)
-      }))))
-      .catch(err => console.error('Erro ao buscar clientes:', err));
-  }, []);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const onAddCliente = (cliente: Omit<Cliente, 'id' | 'dataCadastro'>) => {
-    fetch('http://localhost:3001/clientes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cliente),
-    })
-      .then(res => res.json())
-      .then(novo => setClientes(prev => [...prev, {
-        ...novo,
-        id: String(novo.id),
-        dataCadastro: new Date(novo.data_cadastro)
-      }]))
-      .catch(err => console.error('Erro ao adicionar cliente:', err));
+    const clienteData = {
+      nome: formData.nome,
+      email: formData.email,
+      telefone: formData.telefone,
+      cpfCnpj: formData.cpfCnpj,
+      observacoes: formData.observacoes,
+      status: formData.status,
+    };
+
+    if (editingCliente) {
+      onUpdateCliente(editingCliente.id, clienteData);
+      setEditingCliente(null);
+    } else {
+      onAddCliente(clienteData);
+    }
+
+    setFormData({
+      nome: '',
+      email: '',
+      telefone: '',
+      cpfCnpj: '',
+      status: 'Ativo',
+      observacoes: '',
+    });
+    setShowForm(false);
   };
-
-const onUpdateCliente = (id: string, cliente: Omit<Cliente, 'id' | 'dataCadastro'>) => {
-  fetch(`http://localhost:3001/clientes/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(cliente),
-  })
-    .then(res => {
-      if (!res.ok) throw new Error("Falha ao atualizar");
-      return res.json();
-    })
-    .then(atualizado => {
-      setClientes(prev =>
-        prev.map(c =>
-          c.id === String(id)
-            ? {
-                ...atualizado,
-                id: String(atualizado.id),
-                dataCadastro: new Date(atualizado.data_cadastro),
-              }
-            : c
-        )
-      );
-    })
-    .catch(err => console.error('Erro ao atualizar cliente:', err));
-};
-
-  const onDeleteCliente = (id: string) => {
-    fetch(`http://localhost:3001/clientes/${id}`, {
-      method: 'DELETE',
-    })
-      .then(() => setClientes(prev => prev.filter(c => c.id !== id)))
-      .catch(err => console.error('Erro ao deletar cliente:', err));
-  };
-
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-
-  const clienteData = {
-    nome: formData.nome,
-    email: formData.email,
-    telefone: formData.telefone,
-    cpfCnpj: formData.cpfCnpj,
-    observacoes: formData.observacoes,
-    status: formData.status,
-  };
-
-  if (editingCliente) {
-    onUpdateCliente(editingCliente.id, clienteData);
-    setEditingCliente(null);
-  } else {
-    onAddCliente(clienteData);
-  }
-
-  setFormData({
-    nome: '',
-    email: '',
-    telefone: '',
-    cpfCnpj: '',
-    status: 'Ativo',
-    observacoes: '',
-  });
-  setShowForm(false);
-};
-
 
   const handleEdit = (cliente: Cliente) => {
     setEditingCliente(cliente);

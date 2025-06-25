@@ -15,7 +15,8 @@ export interface Servico {
   nome: string;
   descricao: string;
   valorMensal: number;
-  duracaoContrato: number; // em meses
+  duracaoContrato: number;
+  status: 'Ativo' | 'Inativo';
 }
 
 export type Contrato = {

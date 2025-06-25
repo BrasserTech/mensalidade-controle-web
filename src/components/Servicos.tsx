@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Edit, Trash2, Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, Plus, Edit, Trash2, Package } from "lucide-react";
 import { Servico } from "@/types";
 
 interface ServicosProps {
@@ -17,37 +17,25 @@ export function Servicos({ servicos, onAddServico, onUpdateServico, onDeleteServ
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingServico, setEditingServico] = useState<Servico | null>(null);
-
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Servico, 'id'>>({
     nome: '',
     descricao: '',
-    valorMensal: '',
-    duracaoContrato: ''
+    valorMensal: 0,
+    duracaoContrato: 0,
+    status: 'Ativo',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const servicoData = {
-      nome: formData.nome,
-      descricao: formData.descricao,
-      valorMensal: parseFloat(formData.valorMensal),
-      duracaoContrato: parseInt(formData.duracaoContrato)
-    };
 
     if (editingServico) {
-      onUpdateServico(editingServico.id, servicoData);
+      onUpdateServico(editingServico.id, formData);
       setEditingServico(null);
     } else {
-      onAddServico(servicoData);
+      onAddServico(formData);
     }
-    
-    setFormData({
-      nome: '',
-      descricao: '',
-      valorMensal: '',
-      duracaoContrato: ''
-    });
+
+    setFormData({ nome: '', descricao: '', valorMensal: 0, duracaoContrato: 0, status: 'Ativo' });
     setShowForm(false);
   };
 
@@ -56,15 +44,16 @@ export function Servicos({ servicos, onAddServico, onUpdateServico, onDeleteServ
     setFormData({
       nome: servico.nome,
       descricao: servico.descricao,
-      valorMensal: servico.valorMensal.toString(),
-      duracaoContrato: servico.duracaoContrato.toString()
+      valorMensal: servico.valorMensal,
+      duracaoContrato: servico.duracaoContrato,
+      status: servico.status,
     });
     setShowForm(true);
   };
 
-  const filteredServicos = servicos.filter(servico =>
-    servico.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    servico.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredServicos = servicos.filter(s =>
+    s.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -72,7 +61,7 @@ export function Servicos({ servicos, onAddServico, onUpdateServico, onDeleteServ
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Serviços</h1>
-          <p className="text-gray-600">Gerencie os serviços oferecidos pela empresa</p>
+          <p className="text-gray-600">Gerencie os serviços cadastrados</p>
         </div>
         <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -97,77 +86,55 @@ export function Servicos({ servicos, onAddServico, onUpdateServico, onDeleteServ
           <CardHeader>
             <CardTitle>{editingServico ? 'Editar Serviço' : 'Novo Serviço'}</CardTitle>
             <CardDescription>
-              {editingServico ? 'Atualize as informações do serviço' : 'Preencha os dados do novo serviço'}
+              {editingServico ? 'Atualize os dados do serviço' : 'Preencha os dados do novo serviço'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Nome do Serviço *
-                  </label>
-                  <Input
-                    value={formData.nome}
-                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                    placeholder="Digite o nome do serviço"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Valor Mensal (R$) *
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.valorMensal}
-                    onChange={(e) => setFormData({...formData, valorMensal: e.target.value})}
-                    placeholder="0,00"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                    Duração do Contrato (meses) *
-                  </label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={formData.duracaoContrato}
-                    onChange={(e) => setFormData({...formData, duracaoContrato: e.target.value})}
-                    placeholder="12"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Descrição *
-                </label>
-                <textarea
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-                  placeholder="Descreva o serviço..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
+                <InputGroup
+                  label="Nome do Serviço *"
+                  value={formData.nome}
+                  onChange={v => setFormData({ ...formData, nome: v })}
                 />
+                <InputGroup
+                  label="Valor Mensal (R$) *"
+                  type="number"
+                  value={String(formData.valorMensal)}
+                  onChange={v => setFormData({ ...formData, valorMensal: parseFloat(v) })}
+                />
+                <InputGroup
+                  label="Duração do Contrato (meses) *"
+                  type="number"
+                  value={String(formData.duracaoContrato)}
+                  onChange={v => setFormData({ ...formData, duracaoContrato: parseInt(v) })}
+                />
+                <InputGroup
+                  label="Descrição *"
+                  value={formData.descricao}
+                  onChange={v => setFormData({ ...formData, descricao: v })}
+                />
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Ativo' | 'Inativo' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="Ativo">Ativo</option>
+                    <option value="Inativo">Inativo</option>
+                  </select>
+                </div>
               </div>
+
               <div className="flex justify-end gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     setShowForm(false);
                     setEditingServico(null);
-                    setFormData({
-                      nome: '',
-                      descricao: '',
-                      valorMensal: '',
-                      duracaoContrato: ''
-                    });
+                    setFormData({ nome: '', descricao: '', valorMensal: 0, duracaoContrato: 0, status: 'Ativo' });
                   }}
                 >
                   Cancelar
@@ -186,15 +153,12 @@ export function Servicos({ servicos, onAddServico, onUpdateServico, onDeleteServ
           <Card>
             <CardContent className="py-8">
               <div className="text-center">
-                <Settings className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+                <Package className="mx-auto w-12 h-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   {searchTerm ? 'Nenhum serviço encontrado' : 'Nenhum serviço cadastrado'}
                 </h3>
                 <p className="text-gray-500">
-                  {searchTerm 
-                    ? 'Tente ajustar os termos de busca' 
-                    : 'Comece cadastrando seu primeiro serviço'
-                  }
+                  {searchTerm ? 'Tente ajustar os termos de busca' : 'Comece cadastrando seu primeiro serviço'}
                 </p>
               </div>
             </CardContent>
@@ -207,27 +171,21 @@ export function Servicos({ servicos, onAddServico, onUpdateServico, onDeleteServ
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">{servico.nome}</h3>
+                      <Badge variant={servico.status === 'Ativo' ? 'default' : 'secondary'}>
+                        {servico.status}
+                      </Badge>
                     </div>
                     <div className="space-y-1 text-sm text-gray-600">
                       <p><strong>Descrição:</strong> {servico.descricao}</p>
-                      <p><strong>Valor Mensal:</strong> R$ {servico.valorMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p><strong>Valor Mensal:</strong> R$ {servico.valorMensal.toFixed(2)}</p>
                       <p><strong>Duração do Contrato:</strong> {servico.duracaoContrato} meses</p>
-                      <p><strong>Valor Total:</strong> R$ {(servico.valorMensal * servico.duracaoContrato).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(servico)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(servico)}>
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDeleteServico(servico.id)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => onDeleteServico(servico.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -237,6 +195,25 @@ export function Servicos({ servicos, onAddServico, onUpdateServico, onDeleteServ
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function InputGroup({
+  label,
+  type = 'text',
+  value,
+  onChange
+}: {
+  label: string;
+  type?: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-medium text-gray-700 mb-1 block">{label}</label>
+      <Input type={type} value={value} onChange={e => onChange(e.target.value)} />
     </div>
   );
 }
