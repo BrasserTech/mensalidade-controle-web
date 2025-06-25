@@ -34,7 +34,7 @@ const menuItems = [
   },
   {
     title: "Serviços",
-    url: "#servicos",
+    key: "#servicos",
     icon: FileText,
   },
   {
